@@ -8,42 +8,78 @@ function App() {
   const qRef = useRef();
   const [price, setPrice] = useState(productList[0].price);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [filterSelectedItems, setFilterSelectedItems] = useState([]);
 
   const handleAdd = () => {
     const pid = pRef.current.value;
     const product = productList.find((p) => p.id == pid);
-    const qty = parseInt(qRef.current.value);
-    console.log(qty);
+    const q = parseInt(qRef.current.value);
 
-    const existingItem = selectedItems.findIndex((item) => item.id == pid);
+    const existingItemIndex = selectedItems.findIndex((item) => item.id == pid);
 
-    if (existingItem !== -1) {
+    if (existingItemIndex !== -1) {
       const updatedItems = [...selectedItems];
-      updatedItems[existingItem].qty += qty;
-      updatedItems[existingItem].price = (
-        parseFloat(updatedItems[existingItem].price) + parseFloat(product.price)
+      updatedItems[existingItemIndex].qty += q;
+      updatedItems[existingItemIndex].price = (
+        parseFloat(updatedItems[existingItemIndex].price) +
+        parseFloat(product.price) * q
       ).toFixed(2);
       setSelectedItems(updatedItems);
+      setFilterSelectedItems(updatedItems);
     } else {
-      setSelectedItems([
-        ...selectedItems,
-        {
-          ...product,
-          qty: qty,
-          price: (parseFloat(product.price) * parseInt(qty)).toFixed(2),
-        },
-      ]);
+      const newItem = {
+        ...product,
+        qty: q,
+        price: (parseFloat(product.price) * q).toFixed(2),
+      };
+      setSelectedItems([...selectedItems, newItem]);
+      setFilterSelectedItems([...selectedItems, newItem]);
     }
+  };
+  const filter = (keyword) => {
+    console.log(keyword);
+    const seletctedItems = selectedItems.filter((p) =>
+      p.name.toLowerCase().includes(keyword.toLowerCase())
+    );
+    setFilterSelectedItems(seletctedItems);
   };
 
   const handleProductChanged = (e) => {
     const pid = e.target.value;
-
     const product = productList.find((p) => p.id == pid);
-
     setPrice(product.price);
   };
 
+  const deleteItemByIndex = (index) => {
+    const updatedItems = [...selectedItems];
+    const item = updatedItems[index];
+
+    if (item.qty > 1) {
+      item.qty -= 1;
+      item.price = (
+        parseFloat(item.price) -
+        parseFloat(productList.find((p) => p.id === item.id).price)
+      ).toFixed(2);
+    } else {
+      updatedItems.splice(index, 1);
+    }
+
+    setSelectedItems(updatedItems);
+    setFilterSelectedItems(updatedItems);
+  };
+  const sort = (way) => {
+    if (way === "asc") {
+      const sortedItems = filterSelectedItems.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+      setFilterSelectedItems([...sortedItems]);
+    } else {
+      const sortedItems = filterSelectedItems.sort((a, b) =>
+        b.name.localeCompare(a.name)
+      );
+      setFilterSelectedItems([...sortedItems]);
+    }
+  };
   return (
     <>
       <Container className="mt-4">
@@ -88,7 +124,12 @@ function App() {
           </Col>
         </Row>
 
-        <DataTable data={selectedItems} />
+        <DataTable
+          data={filterSelectedItems}
+          onDelete={deleteItemByIndex}
+          onFilter={filter}
+          onSort={sort}
+        />
       </Container>
     </>
   );
